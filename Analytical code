@@ -1,0 +1,852 @@
+****** DATA ANALYTICAL CODE ******
+//Note that we cannot provide code for how the data is derived using multiple imputation, 
+as this uses numerous auxiliary variables from many different sweeps. 
+Much of this data was constructed from previous projects using the MCS so providing full code and variable lists would not be possible.     
+
+
+//open multiple imputed dataset
+use "$project\ActEarly_data_v008 (MI30)", clear
+//setting survey weights
+mi svyset SPTN00 [pweight=COVWT2], strata(PTTYPE2) fpc(NH2)
+
+
+
+*-------------------------------------------------------------------------*
+//DESCRIPTIVES Table S1
+cap log close
+log using "$project\log_MCS_paper1_descriptives_MI30", text replace	
+foreach X of varlist male ETHCM6 COUNTRY EDUH inc123quint IMD_quint index badGCSE_ME Kessler17_clin Health17_poorfair Cigregular17 Obese17_UK90 {
+mi estimate, post: prop `X' //unweighted
+mi estimate, post: svy: prop `X' //weighted
+	}
+	
+//average income (and by quintile)	
+mi estimate, post: svy: mean inc123
+mi estimate, post: svy: mean inc123, over(inc123quint)
+
+log close
+
+
+//getting mean income for qunitile income groups
+save "$project\ActEarly_data_v008 (MI30)_copy", replace
+use "$project\ActEarly_data_v008 (MI30)_copy", clear
+mi convert flong
+
+misum inc123 if inc123quint==0
+misum inc123 if inc123quint==1
+misum inc123 if inc123quint==2
+misum inc123 if inc123quint==3
+misum inc123 if inc123quint==4
+
+
+
+
+
+
+*-------------------------------------------------------------------------*
+//TABULATON TABLE S2: individual outcomes and income
+
+foreach O of varlist Kessler17_clin  Health17_poorfair  Obese17_UK90 Cigregular17 badGCSE_ME {
+
+putexcel set "$project\putexcel_individual_outcomes", sheet("`O'") modify
+putexcel A1="WHOLE SAMPLE", bold
+putexcel A2="15245", bold
+
+putexcel A3="Income quintiles", bold
+putexcel A4="Lowest 20% income", bold
+putexcel A8="Lowest 20-40% income", bold
+putexcel A12="Middle 40-60%", bold
+putexcel A16="Highest 60-80% income", bold
+putexcel A20="Highest 80-100% income", bold
+
+putexcel A24="Total"
+
+foreach X in B4 B8 B12 B16 B20 B24 { 
+putexcel `X'="N"
+	}
+	
+foreach X in B5 B9 B13 B17 B21 B25 { 
+putexcel `X'="row"
+	}
+	
+foreach X in B6 B10 B14 B18 B22 B26 { 
+putexcel `X'="col"
+	}
+		
+putexcel C1="`O'", bold
+putexcel E1="Total", bold
+putexcel H1="CIs"
+
+foreach X in C3 H3 M3 { 
+putexcel `X'="No"
+	} 
+foreach X in D3 J3 N3{ 
+putexcel `X'="Yes"
+	} 
+
+foreach X in H4 J4 { 
+putexcel `X'="ci_l"
+	} 
+
+foreach X in I4 K4 { 
+putexcel `X'="ci_u"
+	} 
+
+*-------*
+
+//Outcome
+mi estimate, post: svy: prop `O'	
+return list	
+matrix list r(table)
+matrix a = r(table) 
+
+putexcel C25 = a[1,1], nformat(percent_d2)
+putexcel H25 = a[5,1], nformat(percent_d2)
+putexcel I25 = a[6,1], nformat(percent_d2)
+
+putexcel D25 = a[1,2], nformat(percent_d2)
+putexcel J25 = a[5,2], nformat(percent_d2)
+putexcel K25 = a[6,2], nformat(percent_d2)
+
+
+//quintiles
+mi estimate, post: svy: prop inc123quint	
+return list	
+matrix list r(table)
+matrix a = r(table)
+ 
+putexcel E6 = a[1,1], nformat(percent_d2) 
+putexcel E10 = a[1,2], nformat(percent_d2) 
+putexcel E14 = a[1,3], nformat(percent_d2) 
+putexcel E18 = a[1,4], nformat(percent_d2) 
+putexcel E22 = a[1,5], nformat(percent_d2) 
+  
+//formulas for N
+putexcel E4 = formula(E6*A2)
+putexcel E8 = formula(E10*A2)
+putexcel E12 = formula(E14*A2)
+putexcel E16 = formula(E18*A2)
+putexcel E20 = formula(E22*A2)
+
+putexcel C4 = formula(E4*C5)
+putexcel C8 = formula(E8*C9)
+putexcel C12 = formula(E12*C13)
+putexcel C16 = formula(E16*C17)
+putexcel C20 = formula(E20*C21)
+
+putexcel D4 = formula(E4*D5)
+putexcel D8 = formula(E8*D9)
+putexcel D12 = formula(E12*D13)
+putexcel D16 = formula(E16*D17)
+putexcel D20 = formula(E20*D21)
+
+
+//Outcome over income
+mi estimate, post: svy: prop `O', over(inc123quint)		
+return list	
+matrix list r(table)
+matrix a = r(table) 
+
+putexcel C5 = a[1,1], nformat(percent_d2)
+putexcel H5 = a[5,1], nformat(percent_d2)
+putexcel I5 = a[6,1], nformat(percent_d2)
+
+putexcel C9 = a[1,2], nformat(percent_d2)
+putexcel H9 = a[5,2], nformat(percent_d2)
+putexcel I9 = a[6,2], nformat(percent_d2)
+
+putexcel C13 = a[1,3], nformat(percent_d2)
+putexcel H13 = a[5,3], nformat(percent_d2)
+putexcel I13 = a[6,3], nformat(percent_d2)
+
+putexcel C17 = a[1,4], nformat(percent_d2)
+putexcel H17 = a[5,4], nformat(percent_d2)
+putexcel I17 = a[6,4], nformat(percent_d2)
+
+putexcel C21 = a[1,5], nformat(percent_d2)
+putexcel H21 = a[5,5], nformat(percent_d2)
+putexcel I21 = a[6,5], nformat(percent_d2)
+
+
+putexcel D5 = a[1,6], nformat(percent_d2)
+putexcel J5 = a[5,6], nformat(percent_d2)
+putexcel K5 = a[6,6], nformat(percent_d2)
+
+putexcel D9 = a[1,7], nformat(percent_d2)
+putexcel J9 = a[5,7], nformat(percent_d2)
+putexcel K9 = a[6,7], nformat(percent_d2)
+
+putexcel D13 = a[1,8], nformat(percent_d2)
+putexcel J13 = a[5,8], nformat(percent_d2)
+putexcel K13 = a[6,8], nformat(percent_d2)
+
+putexcel D17 = a[1,9], nformat(percent_d2)
+putexcel J17 = a[5,9], nformat(percent_d2)
+putexcel K17 = a[6,9], nformat(percent_d2)
+
+putexcel D21 = a[1,10], nformat(percent_d2)
+putexcel J21 = a[5,10], nformat(percent_d2)
+putexcel K21 = a[6,10], nformat(percent_d2)
+
+//col total
+putexcel E5 = formula(C5+D5), nformat(percent_d2)
+putexcel E9 = formula(C9+D9), nformat(percent_d2)
+putexcel E13 = formula(C13+D13), nformat(percent_d2)
+putexcel E17 = formula(C17+D17), nformat(percent_d2)
+putexcel E21 = formula(C21+D21), nformat(percent_d2)
+putexcel E25 = formula(C25+D25), nformat(percent_d2)
+
+
+
+//Income over outcome
+mi estimate, post: svy: prop inc123quint, over(`O')		
+return list	
+matrix list r(table)
+matrix a = r(table) 
+
+putexcel C6 = a[1,1], nformat(percent_d2)
+putexcel H6 = a[5,1], nformat(percent_d2)
+putexcel I6 = a[6,1], nformat(percent_d2)
+
+putexcel D6 = a[1,2], nformat(percent_d2)
+putexcel J6 = a[5,2], nformat(percent_d2)
+putexcel K6 = a[6,2], nformat(percent_d2)
+
+putexcel C10 = a[1,3], nformat(percent_d2)
+putexcel H10 = a[5,3], nformat(percent_d2)
+putexcel I10 = a[6,3], nformat(percent_d2)
+
+putexcel D10 = a[1,4], nformat(percent_d2)
+putexcel J10 = a[5,4], nformat(percent_d2)
+putexcel K10 = a[6,4], nformat(percent_d2)
+
+putexcel C14 = a[1,5], nformat(percent_d2)
+putexcel H14 = a[5,5], nformat(percent_d2)
+putexcel I14 = a[6,5], nformat(percent_d2)
+
+putexcel D14 = a[1,6], nformat(percent_d2)
+putexcel J14 = a[5,6], nformat(percent_d2)
+putexcel K14 = a[6,6], nformat(percent_d2)
+
+putexcel C18 = a[1,7], nformat(percent_d2)
+putexcel H18 = a[5,7], nformat(percent_d2)
+putexcel I18 = a[6,7], nformat(percent_d2)
+
+putexcel D18 = a[1,8], nformat(percent_d2)
+putexcel J18 = a[5,8], nformat(percent_d2)
+putexcel K18 = a[6,8], nformat(percent_d2)
+
+putexcel C22 = a[1,9], nformat(percent_d2)
+putexcel H22 = a[5,9], nformat(percent_d2)
+putexcel I22 = a[6,9], nformat(percent_d2)
+
+putexcel D22 = a[1,10], nformat(percent_d2)
+putexcel J22 = a[5,10], nformat(percent_d2)
+putexcel K22 = a[6,10], nformat(percent_d2)
+
+//row total
+putexcel C26 = formula(C6+C10+C14+C18+C22), nformat(percent_d2)
+putexcel D26 = formula(D6+D10+D14+D18+D22), nformat(percent_d2)
+
+
+//error bars
+putexcel M1="Error bars"
+putexcel M5 = formula(C5-H5), nformat(percent_d2)
+putexcel N5 = formula(D5-J5), nformat(percent_d2)
+
+putexcel M6 = formula(C6-H6), nformat(percent_d2)
+putexcel N6 = formula(D6-J6), nformat(percent_d2)
+
+putexcel M9 = formula(C9-H9), nformat(percent_d2)
+putexcel N9 = formula(D9-J9), nformat(percent_d2)
+
+putexcel M10 = formula(C10-H10), nformat(percent_d2)
+putexcel N10 = formula(D10-J10), nformat(percent_d2)
+
+putexcel M13 = formula(C13-H13), nformat(percent_d2)
+putexcel N13 = formula(D13-J13), nformat(percent_d2)
+
+putexcel M14 = formula(C14-H14), nformat(percent_d2)
+putexcel N14 = formula(D14-J14), nformat(percent_d2)
+
+putexcel M17 = formula(C17-H17), nformat(percent_d2)
+putexcel N17 = formula(D17-J17), nformat(percent_d2)
+
+putexcel M18 = formula(C18-H18), nformat(percent_d2)
+putexcel N18 = formula(D18-J18), nformat(percent_d2)
+
+putexcel M21 = formula(C21-H21), nformat(percent_d2)
+putexcel N21 = formula(D21-J21), nformat(percent_d2)
+
+putexcel M22 = formula(C22-H22), nformat(percent_d2)
+putexcel N22 = formula(D22-J22), nformat(percent_d2)
+
+putexcel M25 = formula(C25-H25), nformat(percent_d2)
+putexcel N25 = formula(D25-J25), nformat(percent_d2)
+
+}
+
+
+
+
+*-------------------------------------------------------------------------*
+//TABULATON TABLE S3: index and income (code shown for full sample only, for males and females, and white and non-white, code is rerun on each of these groups) 
+putexcel set "$project\putexcel_tabulation_table", sheet("Whole sample") modify
+putexcel A1="WHOLE SAMPLE", bold
+putexcel J24="15245", bold
+
+
+putexcel A3="Income quintiles", bold
+putexcel A4="Lowest 20% income", bold
+putexcel A8="Lowest 20-40% income", bold
+putexcel A12="Middle 40-60%", bold
+putexcel A16="Highest 60-80% income", bold
+putexcel A20="Highest 80-100% income", bold
+
+putexcel A24="Total"
+
+putexcel C2="Any", bold
+putexcel E2="None", bold
+putexcel F2="One", bold
+putexcel G2="Two", bold
+putexcel H2="Three", bold
+putexcel I2="Four or five", bold
+putexcel J2="Total", bold
+putexcel K2="%", bold
+
+putexcel L2="Any 95% CI", bold
+putexcel O2="None 95% CI", bold
+putexcel Q2="One 95% CI", bold
+putexcel S2="Two 95% CI", bold
+putexcel U2="Three 95% CI", bold
+putexcel W2="Four or five 95% CI", bold
+
+putexcel L3="ci_l", bold
+putexcel M3="ci_u", bold
+putexcel O3="ci_l", bold
+putexcel P3="ci_u", bold
+putexcel Q3="ci_l", bold
+putexcel R3="ci_u", bold
+putexcel S3="ci_l", bold
+putexcel T3="ci_u", bold
+putexcel U3="ci_l", bold
+putexcel V3="ci_u", bold
+putexcel W3="ci_l", bold
+putexcel X3="ci_u", bold
+
+putexcel B4="N"
+putexcel B8="N"
+putexcel B12="N"
+putexcel B16="N"
+putexcel B20="N"
+
+putexcel B5="row"
+putexcel B9="row"
+putexcel B13="row"
+putexcel B17="row"
+putexcel B21="row"
+
+putexcel B6="col"
+putexcel B10="col"
+putexcel B14="col"
+putexcel B18="col"
+putexcel B22="col"
+
+
+//any
+mi estimate, post: svy: prop index_any	
+return list
+matrix list r(table)
+matrix a = r(table)
+
+putexcel C25 = a[1,2], nformat(percent_d2)
+putexcel L25 = a[5,2], nformat(percent_d2)
+putexcel M25 = a[6,2], nformat(percent_d2)
+
+//any by quint (forward)
+mi estimate, post: svy: prop index_any, over(inc123quint)	
+return list
+matrix list r(table)
+matrix a = r(table)
+
+putexcel C5 = a[1,6], nformat(percent_d2)
+putexcel L5 = a[5,6], nformat(percent_d2)
+putexcel M5 = a[6,6], nformat(percent_d2)
+
+putexcel C9 = a[1,7], nformat(percent_d2)
+putexcel L9 = a[5,7], nformat(percent_d2)
+putexcel M9 = a[6,7], nformat(percent_d2)
+
+putexcel C13 = a[1,8], nformat(percent_d2)
+putexcel L13 = a[5,8], nformat(percent_d2)
+putexcel M13 = a[6,8], nformat(percent_d2)
+
+putexcel C17 = a[1,9], nformat(percent_d2)
+putexcel L17 = a[5,9], nformat(percent_d2)
+putexcel M17 = a[6,9], nformat(percent_d2)
+
+putexcel C21 = a[1,10], nformat(percent_d2)
+putexcel L21 = a[5,10], nformat(percent_d2)
+putexcel M21 = a[6,10], nformat(percent_d2)
+
+
+//index4
+mi estimate, post: svy: prop index4
+return list
+matrix list r(table)
+matrix a = r(table)
+
+putexcel E25 = a[1,1], nformat(percent_d2)
+putexcel O25 = a[5,1], nformat(percent_d2)
+putexcel P25 = a[6,1], nformat(percent_d2)
+
+putexcel F25 = a[1,2], nformat(percent_d2)
+putexcel Q25 = a[5,2], nformat(percent_d2)
+putexcel R25 = a[6,2], nformat(percent_d2)
+
+putexcel G25 = a[1,3], nformat(percent_d2)
+putexcel S25 = a[5,3], nformat(percent_d2)
+putexcel T25 = a[6,3], nformat(percent_d2)
+
+putexcel H25 = a[1,4], nformat(percent_d2)
+putexcel U25 = a[5,4], nformat(percent_d2)
+putexcel V25 = a[6,4], nformat(percent_d2)
+
+putexcel I25 = a[1,5], nformat(percent_d2)
+putexcel W25 = a[5,5], nformat(percent_d2)
+putexcel X25 = a[6,5], nformat(percent_d2)
+
+
+//index4 by quint (forward)
+mi estimate, post: svy: prop index4, over(inc123quint)	
+return list
+matrix list r(table)
+matrix a = r(table)
+
+putexcel E5 = a[1,1], nformat(percent_d2)
+putexcel O5 = a[5,1], nformat(percent_d2)
+putexcel P5 = a[6,1], nformat(percent_d2)
+
+putexcel F5 = a[1,6], nformat(percent_d2)
+putexcel Q5 = a[5,6], nformat(percent_d2)
+putexcel R5 = a[6,6], nformat(percent_d2)
+
+putexcel G5 = a[1,11], nformat(percent_d2)
+putexcel S5 = a[5,11], nformat(percent_d2)
+putexcel T5 = a[6,11], nformat(percent_d2)
+
+putexcel H5 = a[1,16], nformat(percent_d2)
+putexcel U5 = a[5,16], nformat(percent_d2)
+putexcel V5 = a[6,16], nformat(percent_d2)
+
+putexcel I5 = a[1,21], nformat(percent_d2)
+putexcel W5 = a[5,21], nformat(percent_d2)
+putexcel X5 = a[6,21], nformat(percent_d2)
+
+
+putexcel E9 = a[1,2], nformat(percent_d2)
+putexcel O9 = a[5,2], nformat(percent_d2)
+putexcel P9 = a[6,2], nformat(percent_d2)
+
+putexcel F9 = a[1,7], nformat(percent_d2)
+putexcel Q9 = a[5,7], nformat(percent_d2)
+putexcel R9 = a[6,7], nformat(percent_d2)
+
+putexcel G9 = a[1,12], nformat(percent_d2)
+putexcel S9 = a[5,12], nformat(percent_d2)
+putexcel T9 = a[6,12], nformat(percent_d2)
+
+putexcel H9 = a[1,17], nformat(percent_d2)
+putexcel U9 = a[5,17], nformat(percent_d2)
+putexcel V9 = a[6,17], nformat(percent_d2)
+
+putexcel I9 = a[1,22], nformat(percent_d2)
+putexcel W9 = a[5,22], nformat(percent_d2)
+putexcel X9 = a[6,22], nformat(percent_d2)
+
+
+
+putexcel E13 = a[1,3], nformat(percent_d2)
+putexcel O13 = a[5,3], nformat(percent_d2)
+putexcel P13 = a[6,3], nformat(percent_d2)
+
+putexcel F13 = a[1,8], nformat(percent_d2)
+putexcel Q13 = a[5,8], nformat(percent_d2)
+putexcel R13 = a[6,8], nformat(percent_d2)
+
+putexcel G13 = a[1,13], nformat(percent_d2)
+putexcel S13 = a[5,13], nformat(percent_d2)
+putexcel T13 = a[6,13], nformat(percent_d2)
+
+putexcel H13 = a[1,18], nformat(percent_d2)
+putexcel U13 = a[5,18], nformat(percent_d2)
+putexcel V13 = a[6,18], nformat(percent_d2)
+
+putexcel I13 = a[1,23], nformat(percent_d2)
+putexcel W13 = a[5,23], nformat(percent_d2)
+putexcel X13 = a[6,23], nformat(percent_d2)
+
+
+
+putexcel E17 = a[1,4], nformat(percent_d2)
+putexcel O17 = a[5,4], nformat(percent_d2)
+putexcel P17 = a[6,4], nformat(percent_d2)
+
+putexcel F17 = a[1,9], nformat(percent_d2)
+putexcel Q17 = a[5,9], nformat(percent_d2)
+putexcel R17 = a[6,9], nformat(percent_d2)
+
+putexcel G17 = a[1,14], nformat(percent_d2)
+putexcel S17 = a[5,14], nformat(percent_d2)
+putexcel T17 = a[6,14], nformat(percent_d2)
+
+putexcel H17 = a[1,19], nformat(percent_d2)
+putexcel U17 = a[5,19], nformat(percent_d2)
+putexcel V17 = a[6,19], nformat(percent_d2)
+
+putexcel I17 = a[1,24], nformat(percent_d2)
+putexcel W17 = a[5,24], nformat(percent_d2)
+putexcel X17 = a[6,24], nformat(percent_d2)
+
+
+
+putexcel E21 = a[1,5], nformat(percent_d2)
+putexcel O21 = a[5,5], nformat(percent_d2)
+putexcel P21 = a[6,5], nformat(percent_d2)
+
+putexcel F21 = a[1,10], nformat(percent_d2)
+putexcel Q21 = a[5,10], nformat(percent_d2)
+putexcel R21 = a[6,10], nformat(percent_d2)
+
+putexcel G21 = a[1,15], nformat(percent_d2)
+putexcel S21 = a[5,15], nformat(percent_d2)
+putexcel T21 = a[6,15], nformat(percent_d2)
+
+putexcel H21 = a[1,20], nformat(percent_d2)
+putexcel U21 = a[5,20], nformat(percent_d2)
+putexcel V21 = a[6,20], nformat(percent_d2)
+
+putexcel I21 = a[1,25], nformat(percent_d2)
+putexcel W21 = a[5,25], nformat(percent_d2)
+putexcel X21 = a[6,25], nformat(percent_d2)
+
+
+//any reverse
+mi estimate, post: svy: prop inc123quint, over(index_any)	
+return list
+matrix list r(table)
+matrix a = r(table)
+
+putexcel C6 = a[1,2], nformat(percent_d2)
+putexcel L6 = a[5,2], nformat(percent_d2)
+putexcel M6 = a[6,2], nformat(percent_d2)
+
+putexcel C10 = a[1,4], nformat(percent_d2)
+putexcel L10 = a[5,4], nformat(percent_d2)
+putexcel M10 = a[6,4], nformat(percent_d2)
+
+putexcel C14 = a[1,6], nformat(percent_d2)
+putexcel L14 = a[5,6], nformat(percent_d2)
+putexcel M14 = a[6,6], nformat(percent_d2)
+
+putexcel C18 = a[1,8], nformat(percent_d2)
+putexcel L18 = a[5,8], nformat(percent_d2)
+putexcel M18 = a[6,8], nformat(percent_d2)
+
+putexcel C22 = a[1,10], nformat(percent_d2)
+putexcel L22 = a[5,10], nformat(percent_d2)
+putexcel M22 = a[6,10], nformat(percent_d2)
+
+
+
+//index4 reverse
+mi estimate, post: svy: prop inc123quint, over(index4)	
+return list
+matrix list r(table)
+matrix a = r(table)
+
+putexcel E6 = a[1,1], nformat(percent_d2)
+putexcel O6 = a[5,1], nformat(percent_d2)
+putexcel P6 = a[6,1], nformat(percent_d2)
+
+putexcel F6 = a[1,2], nformat(percent_d2)
+putexcel Q6 = a[5,2], nformat(percent_d2)
+putexcel R6 = a[6,2], nformat(percent_d2)
+
+putexcel G6 = a[1,3], nformat(percent_d2)
+putexcel S6 = a[5,3], nformat(percent_d2)
+putexcel T6 = a[6,3], nformat(percent_d2)
+
+putexcel H6 = a[1,4], nformat(percent_d2)
+putexcel U6 = a[5,4], nformat(percent_d2)
+putexcel V6 = a[6,4], nformat(percent_d2)
+
+putexcel I6 = a[1,5], nformat(percent_d2)
+putexcel W6 = a[5,5], nformat(percent_d2)
+putexcel X6 = a[6,5], nformat(percent_d2)
+
+
+
+putexcel E10 = a[1,6], nformat(percent_d2)
+putexcel O10 = a[5,6], nformat(percent_d2)
+putexcel P10 = a[6,6], nformat(percent_d2)
+
+putexcel F10 = a[1,7], nformat(percent_d2)
+putexcel Q10 = a[5,7], nformat(percent_d2)
+putexcel R10 = a[6,7], nformat(percent_d2)
+
+putexcel G10 = a[1,8], nformat(percent_d2)
+putexcel S10 = a[5,8], nformat(percent_d2)
+putexcel T10 = a[6,8], nformat(percent_d2)
+
+putexcel H10 = a[1,9], nformat(percent_d2)
+putexcel U10 = a[5,9], nformat(percent_d2)
+putexcel V10 = a[6,9], nformat(percent_d2)
+
+putexcel I10 = a[1,10], nformat(percent_d2)
+putexcel W10 = a[5,10], nformat(percent_d2)
+putexcel X10 = a[6,10], nformat(percent_d2)
+
+
+
+putexcel E14 = a[1,11], nformat(percent_d2)
+putexcel O14 = a[5,11], nformat(percent_d2)
+putexcel P14 = a[6,11], nformat(percent_d2)
+
+putexcel F14 = a[1,12], nformat(percent_d2)
+putexcel Q14 = a[5,12], nformat(percent_d2)
+putexcel R14 = a[6,12], nformat(percent_d2)
+
+putexcel G14 = a[1,13], nformat(percent_d2)
+putexcel S14 = a[5,13], nformat(percent_d2)
+putexcel T14 = a[6,13], nformat(percent_d2)
+
+putexcel H14 = a[1,14], nformat(percent_d2)
+putexcel U14 = a[5,14], nformat(percent_d2)
+putexcel V14 = a[6,14], nformat(percent_d2)
+
+putexcel I14 = a[1,15], nformat(percent_d2)
+putexcel W14 = a[5,15], nformat(percent_d2)
+putexcel X14 = a[6,15], nformat(percent_d2)
+
+
+
+putexcel E18 = a[1,16], nformat(percent_d2)
+putexcel O18 = a[5,16], nformat(percent_d2)
+putexcel P18 = a[6,16], nformat(percent_d2)
+
+putexcel F18 = a[1,17], nformat(percent_d2)
+putexcel Q18 = a[5,17], nformat(percent_d2)
+putexcel R18 = a[6,17], nformat(percent_d2)
+
+putexcel G18 = a[1,18], nformat(percent_d2)
+putexcel S18 = a[5,18], nformat(percent_d2)
+putexcel T18 = a[6,18], nformat(percent_d2)
+
+putexcel H18 = a[1,19], nformat(percent_d2)
+putexcel U18 = a[5,19], nformat(percent_d2)
+putexcel V18 = a[6,19], nformat(percent_d2)
+
+putexcel I18 = a[1,20], nformat(percent_d2)
+putexcel W18 = a[5,20], nformat(percent_d2)
+putexcel X18 = a[6,20], nformat(percent_d2)
+
+
+
+putexcel E22 = a[1,21], nformat(percent_d2)
+putexcel O22 = a[5,21], nformat(percent_d2)
+putexcel P22 = a[6,21], nformat(percent_d2)
+
+putexcel F22 = a[1,22], nformat(percent_d2)
+putexcel Q22 = a[5,22], nformat(percent_d2)
+putexcel R22 = a[6,22], nformat(percent_d2)
+
+putexcel G22 = a[1,23], nformat(percent_d2)
+putexcel S22 = a[5,23], nformat(percent_d2)
+putexcel T22 = a[6,23], nformat(percent_d2)
+
+putexcel H22 = a[1,24], nformat(percent_d2)
+putexcel U22 = a[5,24], nformat(percent_d2)
+putexcel V22 = a[6,24], nformat(percent_d2)
+
+putexcel I22 = a[1,25], nformat(percent_d2)
+putexcel W22 = a[5,25], nformat(percent_d2)
+putexcel X22 = a[6,25], nformat(percent_d2)
+
+//row percent
+putexcel J5 = 1, nformat(percent_d2)
+putexcel J9 = 1, nformat(percent_d2)
+putexcel J13 = 1, nformat(percent_d2)
+putexcel J17 = 1, nformat(percent_d2)
+putexcel J21 = 1, nformat(percent_d2)
+putexcel J25 = 1, nformat(percent_d2)
+
+//col percent
+mi estimate, post: svy: prop inc123quint	
+return list
+matrix list r(table)
+matrix a = r(table)
+putexcel J6 = a[1,1], nformat(percent_d2)
+putexcel J10 = a[1,2], nformat(percent_d2)
+putexcel J14 = a[1,3], nformat(percent_d2)
+putexcel J18 = a[1,4], nformat(percent_d2)
+putexcel J22 = a[1,5], nformat(percent_d2)
+
+putexcel E26 = 1, nformat(percent_d2)
+putexcel F26 = 1, nformat(percent_d2)
+putexcel G26 = 1, nformat(percent_d2)
+putexcel H26 = 1, nformat(percent_d2)
+putexcel I26 = 1, nformat(percent_d2)
+
+//formulas for N
+putexcel J4 = formula(J24*J6)
+putexcel J8 = formula(J24*J10)
+putexcel J12 = formula(J24*J14)
+putexcel J16 = formula(J24*J18)
+putexcel J20 = formula(J24*J22) 
+
+putexcel C4 = formula(J4*C5) 
+putexcel E4 = formula(J4*E5) 
+putexcel F4 = formula(J4*F5) 
+putexcel G4 = formula(J4*G5) 
+putexcel H4 = formula(J4*H5) 
+putexcel I4 = formula(J4*I5) 
+
+putexcel C8 = formula(J8*C9) 
+putexcel E8 = formula(J8*E9) 
+putexcel F8 = formula(J8*F9) 
+putexcel G8 = formula(J8*G9) 
+putexcel H8 = formula(J8*H9) 
+putexcel I8 = formula(J8*I9) 
+
+putexcel C12 = formula(J12*C13) 
+putexcel E12 = formula(J12*E13) 
+putexcel F12 = formula(J12*F13) 
+putexcel G12 = formula(J12*G13) 
+putexcel H12 = formula(J12*H13) 
+putexcel I12 = formula(J12*I13) 
+
+putexcel C16 = formula(J16*C17) 
+putexcel E16 = formula(J16*E17) 
+putexcel F16 = formula(J16*F17) 
+putexcel G16 = formula(J16*G17) 
+putexcel H16 = formula(J16*H17) 
+putexcel I16 = formula(J16*I17) 
+
+putexcel C20 = formula(J20*C21) 
+putexcel E20 = formula(J20*E21) 
+putexcel F20 = formula(J20*F21) 
+putexcel G20 = formula(J20*G21) 
+putexcel H20 = formula(J20*H21) 
+putexcel I20 = formula(J20*I21) 
+
+putexcel C24 = formula(J24*C25) 
+putexcel E24 = formula(J24*E25) 
+putexcel F24 = formula(J24*F25) 
+putexcel G24 = formula(J24*G25) 
+putexcel H24 = formula(J24*H25) 
+putexcel I24 = formula(J24*I25) 
+***************************************************************************
+
+
+
+
+
+
+
+
+*-------------------------------------------------------------------------*
+//INDIVIDUAL OUTCOMES Table S5 and Figure 1, and additional analyses with control variables
+
+cap erase "$project\logistic_individual_REVISED_FINAL.xls"
+cap erase "$project\logistic_individual_REVISED_FINAL.txt"
+foreach X of varlist Kessler17_clin  Health17_poorfair Obese17_UK90 Cigregular17 badGCSE_ME  {
+
+mi estimate, eform dots post: glm `X' ib4.inc123quint [pweight=COVWT2], fam(poisson) link(log) nolog vce(robust)
+outreg2 using "$project\logistic_individual_REVISED_FINAL.xls", eform stats(coef ci) cttop(`X') dec(2) side alpha(.001, .01, .05, .10) symbol(***, **, *, +) label append
+
+mi estimate, eform dots post: glm `X' ib4.inc123quint i.EDUH singpa1 [pweight=COVWT2], fam(poisson) link(log) nolog vce(robust)
+outreg2 using "$project\logistic_individual_REVISED_FINAL.xls", eform stats(coef ci) cttop(`X') dec(2) side alpha(.001, .01, .05, .10) symbol(***, **, *, +) label append
+
+	}	
+	
+	
+	
+*------------------------------------------------------------------------*
+//INDEX OF MULTIPLE ADVERITY Table S6 and Figure 2, and additional analyses with control variables
+		
+cap erase "$project\logistic_index4_REVISED_FINAL.xls"
+cap erase "$project\logistic_index4_REVISED_FINAL.txt"
+foreach X of varlist index_any index_none index_one index_two index_three index_4ormore  {
+
+mi estimate, eform dots post: glm `X' ib4.inc123quint [pweight=COVWT2], fam(poisson) link(log) nolog vce(robust)
+outreg2 using "$project\logistic_index4_REVISED_FINAL.xls", eform stats(coef ci) cttop(`X') dec(2) side alpha(.001, .01, .05, .10) symbol(***, **, *, +) label append
+
+mi estimate, eform dots post: glm `X' ib4.inc123quint i.EDUH singpa1 [pweight=COVWT2], fam(poisson) link(log) nolog vce(robust)
+outreg2 using "$project\logistic_index4_REVISED_FINAL.xls", eform stats(coef ci) cttop(`X') dec(2) side alpha(.001, .01, .05, .10) symbol(***, **, *, +) label append
+
+	}	
+
+	
+	
+
+*-------------------------------------------------------------------------*
+//SCENARIO ANALYSES: ROW PERCENTAGES ADJUSTED FOR EDUCATION AND SINGLE PARENT STATUS (Figure S3)
+//size of adjusted income groups
+quietly {
+mi estimate: svy : mlogit inc123quint i.EDUH singpa1
+}
+mimrgns, vce(unconditional) predict(outcome(0))
+mimrgns, vce(unconditional) predict(outcome(1))
+mimrgns, vce(unconditional) predict(outcome(2))
+mimrgns, vce(unconditional) predict(outcome(3))
+mimrgns, vce(unconditional) predict(outcome(4))	
+}
+
+//margins of logistic regression to get adjusted percentages
+cap log close
+log using "$project\adjusted_margins_for_scenarios_ROW_PERCENTAGES ", text replace	
+foreach X of varlist index_one index_two index_three index_4ormore Kessler17_clin  Health17_poorfair Obese17_UK90 Cigregular17 badGCSE_ME  {	
+quietly {
+mi estimate: svy : logit `X' i.inc123quint i.EDUH singpa1
+}
+mimrgns inc123quint, vce(unconditional) predict(pr)		
+}
+cap log close
+
+
+
+
+	
+*-------------------------------------------------------------------------*
+//GENDER DIFFERENCES 
+mi estimate, post: svy: prop index4, over(male) 
+mi estimate, post rr: svy: mlogit index4 male
+mi estimate, post: svy: prop index4, over(inc123quint male) 
+
+cap erase "$project\logistic_index4_gender.xls"
+cap erase "$project\logistic_index4_gender.txt"
+foreach X of varlist index_any index_none index_one index_two index_three index_4ormore  {
+mi estimate, post or: svy: logistic `X' ib4.inc123quint##male
+outreg2 using "$project\logistic_index4_gender.xls", eform stats(coef se) cttop(`X') bdec(2) sdec(2) side alpha(.001, .01, .05, .10) symbol(***, **, *, +) label append
+	} 
+
+ 
+ 
+*-------------------------------------------------------------------------*
+//ETHNIC DIFFERENCES
+//any adverse outcomes
+mi estimate, post: svy: prop inc123quint
+mi estimate, post: svy: prop inc123quint, over(ETHCM2)
+mi estimate, post: svy: prop index_any, over(ETHCM2)
+mi estimate, post: svy: prop index_any, over(inc123quint ETHCM2) 
+mi estimate, post or: svy: logistic index_any ib4.inc123quint##ETHCM2 
+    
+//index3 (using index3 as problems with no observations when using index4 for ethnic minorities).
+mi estimate, post: svy: prop index3, over(ETHCM2)
+mi estimate, post: svy: prop index3, over(inc123quint ETHCM2)
+foreach X of varlist index_any index_none index_one index_two index_3ormore  {
+mi estimate, post or: svy: logistic `X' ib4.inc123quint##ETHCM2
+outreg2 using "$project\logistic_index3_ethnicity.xls", eform stats(coef se) cttop(`X') bdec(2) sdec(2) side alpha(.001, .01, .05, .10) symbol(***, **, *, +) label append
+	} 
+
